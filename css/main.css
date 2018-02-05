@@ -1,0 +1,106 @@
+* {
+margin: 0;
+padding: 0;
+}
+
+body {
+  background-color: #fafafa;
+}
+
+nav {
+  background-color:#99aaea;
+  vertical-align: middle;
+  border-bottom: 5px solid black;
+}
+
+#title-div {
+  color: black;
+  font-size: 24px;
+  font-weight: bold;
+  font-family: Verdana, Geneva, sans-serif;
+  vertical-align: middle;
+}
+
+#show-hide-but {
+  background-color: #99aaea;
+  border: none;
+  color: white;
+  padding: 7px 14px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 12px;
+  float: left;
+}
+
+#show-hide-send-but {
+  background-color: #99aaea;
+  border: none;
+  color: white;
+  padding: 7px 14px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 12px;
+  float: left;
+}
+
+#address-div {
+  border: 2px solid #999999;
+  display: none;
+  padding: 5px;
+  float: left;
+  margin-left: 10px;
+  font-size: 11px;
+  font-family: Verdana, Geneva, sans-serif;
+}
+
+#balance-div {
+  padding-left: 20px;
+  padding-top: 20px;
+  vertical-align: middle;
+}
+
+#balance-val-rky {
+  padding-left: 5px;
+  padding-top: 60px;
+  font-family: Verdana, Geneva, sans-serif;
+  font-size: 36px;
+  font-weight: bold;
+  float: bottom;
+  margin-bottom: 10px
+}
+
+#balance-val-lla {
+  padding-left: 5px;
+  padding-top: 5px;
+  font-family: Verdana, Geneva, sans-serif;
+  font-size: 36px;
+  font-weight: bold;
+  float: bottom;
+  margin-bottom: 30px
+}
+
+#send-div {
+  margin-top: 70px;
+  font-size: 14px;
+  font-family: Verdana, Geneva, sans-serif;
+  display: none;
+}
+
+#send-but {
+  background-color: #99aaea;
+  border: none;
+  color: white;
+  padding: 7px 14px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 12px;
+  float: left;
+}
+
+form  { display: table;      }
+p     { display: table-row;  }
+label { display: table-cell; }
+input { display: table-cell; }

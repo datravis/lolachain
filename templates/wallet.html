@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" type="text/css" href="./css/main.css">
+<script src="./js/showHide.js"></script>
+<script src="./js/showHideSend.js"></script>
+<title>LolaChain</title>
+</head>
+<body>
+<nav>
+<div id="title-div"><img width=75px src="./img/rocky.png" style="vertical-align:middle"></img> LolaChain</div>
+</nav>
+<div id="balance-div">
+	<button id="show-hide-but" onclick="showHide()">Show Address</button>
+	<div id="address-div">{{.Address}}</div>
+	<div id="balance-val-rky">{{.RKYBalance}} RKY</div>
+	<div id="balance-val-lla">{{.LOLABalance}} LOLA</div>
+	<button id="show-hide-send-but" onclick="showHideSend()">Send</button>
+	<div id="send-div" class="container">
+	<form action="/" method="post" id="send-form">
+    <p><label>destination</label><input type="text" name="destination"></p>
+    <p><label>amount</label><input type="text" name="amount"></p>
+    <p><label>symbol</label><input type="text" name="symbol"></p>
+    <p><label>memo</label><input type="text" name="memo"></p>
+    <p><input id="send-but" type="submit" value="submit"></p>
+    </form>
+	</div>
+</body>
+</html>
