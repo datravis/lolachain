@@ -1,6 +1,8 @@
 # lolachain
 A blockchain named for my dog, Lola. Currently two tokens exist on the chain, RockyCoin (RKY) and LolaCoin (LOLA). This is largely a personal project done for fun.
 
+Currently a work in progress, I plan to implement a decentralized consensus model among some other features.
+
 ## Building
 A Makefile is provided at the root of the project, for convenience. Targets exist for Windows, Linux, and macOS. Simply run `make linux`, `make darwin`, or `make windows`. Targets to `test` and `lint` also exist. Files are written to platform specific subdirectories in `./dist/`.
 
