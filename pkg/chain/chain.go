@@ -10,6 +10,8 @@ import (
 	"github.com/datravis/lolachain/pkg/tran"
 )
 
+const INCREMENTOR_DIVISOR = 9
+
 // Chain contains a chain of blocks a long with pending transactions.
 type Chain struct {
 	Blocks  []*block.Block
@@ -23,11 +25,13 @@ func (c *Chain) Validate(keyPair *ecdsa.PrivateKey) {
 		fmt.Println(err.Error())
 	}
 
-	ticker := time.NewTicker(5 * time.Second)
+	done := make(chan interface{})
+	defer close(done)
 	for {
+		incrementorStream := c.FindIncrementor(done)
 		select {
-		case <-ticker.C:
-			blk, err := c.NextBlock(c.Pending, keyPair)
+		case inc := <-incrementorStream:
+			blk, err := c.NextBlock(c.Pending, inc, keyPair)
 
 			if err != nil {
 				fmt.Printf("Error: %s\n", err)
@@ -66,7 +70,7 @@ func (c *Chain) PostTransaction(t tran.Transaction) error {
 }
 
 // NextBlock Adds the next block to the blockchain.
-func (c *Chain) NextBlock(transactions []tran.Transaction, keyPair *ecdsa.PrivateKey) (*block.Block, error) {
+func (c *Chain) NextBlock(transactions []tran.Transaction, incrementor uint64, keyPair *ecdsa.PrivateKey) (*block.Block, error) {
 	lastBlock := c.Blocks[len(c.Blocks)-1]
 	ts := time.Now().UTC()
 
@@ -89,7 +93,7 @@ func (c *Chain) NextBlock(transactions []tran.Transaction, keyPair *ecdsa.Privat
 		return nil, err
 	}
 
-	nextBlock, err := block.NewBlock(lastBlock.Index+1, ts, validTransactions, validatorAddress, lastBlock.Hash)
+	nextBlock, err := block.NewBlock(lastBlock.Index+1, ts, validTransactions, validatorAddress, lastBlock.Hash, incrementor)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +110,7 @@ func (c *Chain) GenesisBlock(keyPair *ecdsa.PrivateKey) (*block.Block, error) {
 	}
 
 	ts := time.Now().UTC()
-	nextBlock, err := block.NewBlock(0, ts, []tran.Transaction{}, validatorAddress, [32]byte{})
+	nextBlock, err := block.NewBlock(0, ts, []tran.Transaction{}, validatorAddress, [32]byte{}, INCREMENTOR_DIVISOR)
 	if err != nil {
 		return nil, err
 	}
@@ -189,4 +193,29 @@ func (c *Chain) VerifyBalance(t tran.Transaction) (bool, error) {
 	}
 
 	return true, nil
+}
+
+// FindIncrementor implements a simple proof of work algorithm.
+func (c *Chain) FindIncrementor(done chan interface{}) <-chan uint64 {
+	incrementorStream := make(chan uint64)
+	go func() {
+		defer close(incrementorStream)
+		lastIncrementor := c.Blocks[len(c.Blocks)-1].Incrementor
+		incrementor := lastIncrementor + 1
+		for {
+
+			select {
+			case <-done:
+				return
+			default:
+				if incrementor%INCREMENTOR_DIVISOR == 0 && incrementor%lastIncrementor == 0 {
+					incrementorStream <- incrementor
+					return
+				}
+				incrementor++
+			}
+		}
+	}()
+
+	return incrementorStream
 }
