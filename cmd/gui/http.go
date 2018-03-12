@@ -48,7 +48,7 @@ func ShowWallet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	balances, err := client.GetBalances(address)
+	balances, err := client.GetBalances(validator, address)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return
@@ -113,7 +113,7 @@ func Send(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = client.Send(keyPair, dest, amount, symbol, memo)
+	err = client.Send(validator, keyPair, dest, amount, symbol, memo)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return

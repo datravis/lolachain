@@ -10,15 +10,16 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/datravis/lolachain/pkg/block"
 	"github.com/datravis/lolachain/pkg/keys"
 	"github.com/datravis/lolachain/pkg/tran"
 )
 
 // GetBalances return's a wallet's balances.
-func GetBalances(address string) (map[string]float64, error) {
+func GetBalances(host string, address string) (map[string]float64, error) {
 	balances := make(map[string]float64)
 
-	url := fmt.Sprintf("http://localhost:8081/addresses/%s", address)
+	url := fmt.Sprintf("%s/addresses/%s", host, address)
 	resp, err := http.Get(url)
 	if err != nil {
 		return balances, err
@@ -35,7 +36,7 @@ func GetBalances(address string) (map[string]float64, error) {
 }
 
 // Send submits a new transaction to the lolachain API.
-func Send(keyPair *ecdsa.PrivateKey, dest string, amount float64, symbol string, memo string) error {
+func Send(host string, keyPair *ecdsa.PrivateKey, dest string, amount float64, symbol string, memo string) error {
 	address, err := keys.GetAddress(keyPair)
 	if err != nil {
 		return err
@@ -56,7 +57,7 @@ func Send(keyPair *ecdsa.PrivateKey, dest string, amount float64, symbol string,
 		return err
 	}
 
-	resp, err := http.Post("http://localhost:8081/transactions", "application/json", bytes.NewBuffer(tJSON))
+	resp, err := http.Post(fmt.Sprintf("%s/transactions", host), "application/json", bytes.NewBuffer(tJSON))
 	if err != nil {
 		return err
 	}
@@ -72,4 +73,24 @@ func Send(keyPair *ecdsa.PrivateKey, dest string, amount float64, symbol string,
 	defer resp.Body.Close()
 
 	return errors.New(string(body))
+}
+
+// GetBalances return's validators block chain.
+func GetBlocks(host string) ([]*block.Block, error) {
+	blocks := make([]*block.Block, 0)
+
+	url := fmt.Sprintf("%s/chain", host)
+	resp, err := http.Get(url)
+	if err != nil {
+		return blocks, err
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return blocks, err
+	}
+	defer resp.Body.Close()
+
+	err = json.Unmarshal(body, &blocks)
+	return blocks, err
 }

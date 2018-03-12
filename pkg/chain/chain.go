@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/datravis/lolachain/pkg/block"
+	"github.com/datravis/lolachain/pkg/client"
 	"github.com/datravis/lolachain/pkg/keys"
 	"github.com/datravis/lolachain/pkg/tran"
 )
@@ -16,13 +17,19 @@ const INCREMENTOR_DIVISOR = 9
 type Chain struct {
 	Blocks  []*block.Block
 	Pending []tran.Transaction
+	Peers   []string
 }
 
 // Validate runs the main validator processing loop.
 func (c *Chain) Validate(keyPair *ecdsa.PrivateKey) {
-	_, err := c.GenesisBlock(keyPair)
-	if err != nil {
-		fmt.Println(err.Error())
+
+	c.Blocks = c.FetchBlocks()
+
+	if len(c.Blocks) == 0 {
+		_, err := c.GenesisBlock(keyPair)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
 	}
 
 	done := make(chan interface{})
@@ -218,4 +225,21 @@ func (c *Chain) FindIncrementor(done chan interface{}) <-chan uint64 {
 	}()
 
 	return incrementorStream
+}
+
+func (c *Chain) FetchBlocks() []*block.Block {
+	blocks := make([]*block.Block, 0)
+	for _, peer := range c.Peers {
+		tmpBlocks, err := client.GetBlocks(peer)
+		if err != nil {
+			fmt.Printf("Error: %s\n", err)
+			continue
+		}
+
+		if len(tmpBlocks) > len(blocks) {
+			blocks = tmpBlocks
+		}
+	}
+
+	return blocks
 }

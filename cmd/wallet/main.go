@@ -12,6 +12,7 @@ import (
 // TODO: This needs to be refactored. This is just a quickly thrown together
 // implementation to get something going.
 func main() {
+	v := flag.String("validator", "http://localhost:8081", "the validator to connect to")
 	flag.Parse()
 	args := flag.Args()
 
@@ -44,7 +45,7 @@ func main() {
 			address = args[1]
 		}
 
-		balances, err := client.GetBalances(address)
+		balances, err := client.GetBalances(*v, address)
 		if err != nil {
 			fmt.Printf("Error: %s\n", err)
 			return
@@ -68,7 +69,7 @@ func main() {
 		}
 		symbol := args[3]
 		memo := args[4]
-		err = client.Send(keyPair, dest, amount, symbol, memo)
+		err = client.Send(*v, keyPair, dest, amount, symbol, memo)
 		if err != nil {
 			fmt.Printf("Error: %s\n", err)
 			return

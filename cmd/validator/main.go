@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 
 	"github.com/datravis/lolachain/pkg/chain"
@@ -8,7 +9,10 @@ import (
 )
 
 func main() {
-	c := &chain.Chain{}
+	port := flag.String("port", "8081", "The port to bind the server to")
+	seed := flag.String("seed", "", "A seed node to connect to")
+	flag.Parse()
+
 	path, err := keys.GetDefaultKeyPath()
 	if err != nil {
 		fmt.Printf("Error: %s\n", err)
@@ -21,7 +25,11 @@ func main() {
 		return
 	}
 
+	c := &chain.Chain{
+		Peers: []string{*seed},
+	}
+
 	go c.Validate(keyPair)
 
-	StartServer(c)
+	StartServer(*port, c)
 }
