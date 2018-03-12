@@ -15,16 +15,43 @@ import (
 var lolachain *chain.Chain
 
 // StartServer starts the validator HTTP server.
-func StartServer(port string, c *chain.Chain) {
+func StartServer(bind string, c *chain.Chain) {
 	lolachain = c
 	r := mux.NewRouter()
 	r.HandleFunc("/addresses/{address}", AddressHandler)
 	r.HandleFunc("/transactions", TransactionHandler)
 	r.HandleFunc("/chain", ChainHandler)
 	r.HandleFunc("/pending", PendingHandler)
+	r.HandleFunc("/peers", PeersHandler)
 	http.Handle("/", r)
 
-	fmt.Printf("%s", http.ListenAndServe(fmt.Sprintf(":%s", port), nil))
+	fmt.Printf("%s", http.ListenAndServe(bind, nil))
+}
+
+// PeersHandler handles posting new peers.
+func PeersHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
+		b, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		defer r.Body.Close()
+
+		lolachain.AddPeer(string(b))
+	} else if r.Method == "GET" {
+		peerJSON, err := json.MarshalIndent(lolachain.Peers, "", "  ")
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+
+		fmt.Fprintf(w, string(peerJSON))
+	} else {
+		http.NotFound(w, r)
+		return
+	}
+
 }
 
 // ChainHandler returns the blockchain in JSON format.

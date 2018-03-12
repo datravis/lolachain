@@ -15,13 +15,15 @@ const INCREMENTOR_DIVISOR = 9
 
 // Chain contains a chain of blocks a long with pending transactions.
 type Chain struct {
-	Blocks  []*block.Block
-	Pending []tran.Transaction
-	Peers   []string
+	Blocks    []*block.Block
+	Pending   []tran.Transaction
+	Peers     []string
+	MyAddress string
 }
 
 // Validate runs the main validator processing loop.
 func (c *Chain) Validate(keyPair *ecdsa.PrivateKey) {
+	c.NotifyPeers()
 
 	c.Blocks = c.FetchBlocks()
 
@@ -227,6 +229,7 @@ func (c *Chain) FindIncrementor(done chan interface{}) <-chan uint64 {
 	return incrementorStream
 }
 
+// FetchBlocks fetches the longest blockchain from our peers.
 func (c *Chain) FetchBlocks() []*block.Block {
 	blocks := make([]*block.Block, 0)
 	for _, peer := range c.Peers {
@@ -242,4 +245,16 @@ func (c *Chain) FetchBlocks() []*block.Block {
 	}
 
 	return blocks
+}
+
+// NotifyPeers notifies our peers of our existance.
+func (c *Chain) NotifyPeers() {
+	for _, peer := range c.Peers {
+		client.PostPeer(peer, c.MyAddress)
+	}
+}
+
+// AddPeer adds a new peer to our collection of peers.
+func (c *Chain) AddPeer(peer string) {
+	c.Peers = append(c.Peers, peer)
 }

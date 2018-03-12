@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	port := flag.String("port", "8081", "The port to bind the server to")
+	bind := flag.String("bind", "localhost:8081", "The address and port to bind the server to")
 	seed := flag.String("seed", "", "A seed node to connect to")
 	flag.Parse()
 
@@ -31,5 +31,5 @@ func main() {
 
 	go c.Validate(keyPair)
 
-	StartServer(*port, c)
+	StartServer(*bind, c)
 }

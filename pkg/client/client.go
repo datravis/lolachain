@@ -35,6 +35,26 @@ func GetBalances(host string, address string) (map[string]float64, error) {
 	return balances, err
 }
 
+// PostPeer submits a new transaction to the lolachain API.
+func PostPeer(host string, peer string) error {
+	resp, err := http.Post(fmt.Sprintf("%s/peers", host), "text/plain", bytes.NewBuffer([]byte(peer)))
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode == 200 {
+		return nil
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	return errors.New(string(body))
+}
+
 // Send submits a new transaction to the lolachain API.
 func Send(host string, keyPair *ecdsa.PrivateKey, dest string, amount float64, symbol string, memo string) error {
 	address, err := keys.GetAddress(keyPair)
