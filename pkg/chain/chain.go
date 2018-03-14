@@ -3,6 +3,7 @@ package chain
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"math/rand"
 	"time"
 
 	"github.com/datravis/lolachain/pkg/block"
@@ -11,21 +12,30 @@ import (
 	"github.com/datravis/lolachain/pkg/tran"
 )
 
-const INCREMENTOR_DIVISOR = 9
+const INCREMENTOR_DIVISOR = 128457181
 
 // Chain contains a chain of blocks a long with pending transactions.
 type Chain struct {
 	Blocks    []*block.Block
 	Pending   []tran.Transaction
-	Peers     []string
+	Peers     map[string]bool
 	MyAddress string
+}
+
+// NewChain returns an instance of a chain.
+func NewChain(address string, peers map[string]bool) *Chain {
+	return &Chain{
+		Blocks:    make([]*block.Block, 0, 0),
+		Pending:   []tran.Transaction{},
+		Peers:     peers,
+		MyAddress: address,
+	}
 }
 
 // Validate runs the main validator processing loop.
 func (c *Chain) Validate(keyPair *ecdsa.PrivateKey) {
-	c.NotifyPeers()
-
 	c.Blocks = c.FetchBlocks()
+	fmt.Printf("Fetched %d blocks from peer\n", len(c.Blocks))
 
 	if len(c.Blocks) == 0 {
 		_, err := c.GenesisBlock(keyPair)
@@ -34,11 +44,28 @@ func (c *Chain) Validate(keyPair *ecdsa.PrivateKey) {
 		}
 	}
 
-	done := make(chan interface{})
-	defer close(done)
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		for range ticker.C {
+			c.NotifyPeers()
+		}
+	}()
+
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		for range ticker.C {
+			c.FindPeers()
+		}
+	}()
+
 	for {
+		done := make(chan interface{})
 		incrementorStream := c.FindIncrementor(done)
+		blockUpdateStream := c.FindBlockUpdates(done)
 		select {
+		case count := <-blockUpdateStream:
+			fmt.Printf("Fetched %d blocks from peer\n", count)
+			fmt.Printf("Chain length: %d\n", len(c.Blocks))
 		case inc := <-incrementorStream:
 			blk, err := c.NextBlock(c.Pending, inc, keyPair)
 
@@ -46,12 +73,23 @@ func (c *Chain) Validate(keyPair *ecdsa.PrivateKey) {
 				fmt.Printf("Error: %s\n", err)
 			} else {
 				fmt.Printf("New Block Generated: %d\n", blk.Index)
-				for _, t := range blk.Transactions {
-					fmt.Printf("tx:\n src: %s\n dest: %s\n amt: %f %s\n memo: %s\n\n", t.Source, t.Destination, t.Amount, t.Symbol, t.Memo)
-				}
+				fmt.Printf("Chain length: %d\n", len(c.Blocks))
 				c.Pending = make([]tran.Transaction, 0)
 			}
 
+		}
+		close(done)
+	}
+}
+
+func (c *Chain) FindPeers() {
+	for peer, _ := range c.Peers {
+		peers, err := client.GetPeers(peer)
+		if err != nil {
+			fmt.Printf("Error: %s\n", err)
+		}
+		for p, _ := range peers {
+			c.Peers[p] = true
 		}
 	}
 }
@@ -206,22 +244,22 @@ func (c *Chain) VerifyBalance(t tran.Transaction) (bool, error) {
 
 // FindIncrementor implements a simple proof of work algorithm.
 func (c *Chain) FindIncrementor(done chan interface{}) <-chan uint64 {
+	fmt.Println("Finding next incrementor")
 	incrementorStream := make(chan uint64)
 	go func() {
 		defer close(incrementorStream)
-		lastIncrementor := c.Blocks[len(c.Blocks)-1].Incrementor
-		incrementor := lastIncrementor + 1
+		incrementor := rand.Uint64()
 		for {
 
 			select {
 			case <-done:
 				return
 			default:
-				if incrementor%INCREMENTOR_DIVISOR == 0 && incrementor%lastIncrementor == 0 {
+				if incrementor%INCREMENTOR_DIVISOR == 0 && incrementor != 0 {
 					incrementorStream <- incrementor
 					return
 				}
-				incrementor++
+				incrementor = rand.Uint64()
 			}
 		}
 	}()
@@ -229,10 +267,35 @@ func (c *Chain) FindIncrementor(done chan interface{}) <-chan uint64 {
 	return incrementorStream
 }
 
+// FindBlockUpdates retrieves the longest blockchain from our peers.
+func (c *Chain) FindBlockUpdates(done chan interface{}) <-chan int {
+	blockUpdateStream := make(chan int)
+	ticker := time.NewTicker(2 * time.Second)
+	go func() {
+		defer close(blockUpdateStream)
+		for {
+			select {
+			case <-done:
+				return
+			case <-ticker.C:
+				longestChain := c.FetchBlocks()
+				diff := len(longestChain) - len(c.Blocks)
+				if diff > 0 {
+					c.Blocks = longestChain
+					blockUpdateStream <- diff
+					return
+				}
+			}
+		}
+	}()
+
+	return blockUpdateStream
+}
+
 // FetchBlocks fetches the longest blockchain from our peers.
 func (c *Chain) FetchBlocks() []*block.Block {
-	blocks := make([]*block.Block, 0)
-	for _, peer := range c.Peers {
+	blocks := make([]*block.Block, 0, 0)
+	for peer, _ := range c.Peers {
 		tmpBlocks, err := client.GetBlocks(peer)
 		if err != nil {
 			fmt.Printf("Error: %s\n", err)
@@ -249,12 +312,12 @@ func (c *Chain) FetchBlocks() []*block.Block {
 
 // NotifyPeers notifies our peers of our existance.
 func (c *Chain) NotifyPeers() {
-	for _, peer := range c.Peers {
+	for peer, _ := range c.Peers {
 		client.PostPeer(peer, c.MyAddress)
 	}
 }
 
 // AddPeer adds a new peer to our collection of peers.
 func (c *Chain) AddPeer(peer string) {
-	c.Peers = append(c.Peers, peer)
+	c.Peers[peer] = true
 }

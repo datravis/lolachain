@@ -25,9 +25,12 @@ func main() {
 		return
 	}
 
-	c := &chain.Chain{
-		Peers: []string{*seed},
+	seeds := make(map[string]bool)
+	if len(*seed) > 0 {
+		seeds[*seed] = true
 	}
+
+	c := chain.NewChain("http://"+*bind, seeds)
 
 	go c.Validate(keyPair)
 

@@ -114,3 +114,24 @@ func GetBlocks(host string) ([]*block.Block, error) {
 	err = json.Unmarshal(body, &blocks)
 	return blocks, err
 }
+
+// GetPeers retrives a nodes peers and adds them to our list.
+func GetPeers(host string) (map[string]bool, error) {
+	peers := make(map[string]bool)
+
+	url := fmt.Sprintf("%s/peers", host)
+	resp, err := http.Get(url)
+	if err != nil {
+		return peers, err
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return peers, err
+	}
+	defer resp.Body.Close()
+
+	err = json.Unmarshal(body, &peers)
+	return peers, err
+
+}
